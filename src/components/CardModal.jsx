@@ -21,7 +21,7 @@ const colorClass = (c) => {
   }
 };
 
-export default function CardModal({ card, members = [], onClose, onSave, onArchive, labels: _labels = [] }) {
+export default function CardModal({ card, members = [], onClose, onSave, onArchive, labels: _labels = [], onCreateLabel }) {
   const [local, setLocal] = useState(null);
   const [labels, setLabels] = useState([]); // global label options
   const [newLabelName, setNewLabelName] = useState('');
@@ -33,10 +33,16 @@ export default function CardModal({ card, members = [], onClose, onSave, onArchi
 
   useEffect(() => {
     if (card) {
-      // ensure shape contains checklists array
+      // ensure shape contains all expected fields
       setLocal({
         ...card,
-        checklists: Array.isArray(card.checklists) ? card.checklists : []
+        title: card.title || '',
+        description: card.description || '',
+        dueDate: card.dueDate || null,
+        labels: Array.isArray(card.labels) ? card.labels : [],
+        members: Array.isArray(card.members) ? card.members : [],
+        checklists: Array.isArray(card.checklists) ? card.checklists : [],
+        attachments: Array.isArray(card.attachments) ? card.attachments : []
       });
     } else {
       setLocal(null);
@@ -55,8 +61,9 @@ export default function CardModal({ card, members = [], onClose, onSave, onArchi
     const trimmed = newLabelName.trim();
     if (!trimmed) return;
     const nl = { id: uuid(), name: trimmed, color: newLabelColor };
-    setLabels([nl, ...labels]);
-    // auto-select the new label on the card
+    // notify parent to persist this new global label
+    if (typeof onCreateLabel === 'function') onCreateLabel(nl);
+    // also select the new label on this card
     setLocal({ ...local, labels: [...(local.labels || []), nl.id] });
     setNewLabelName('');
   }

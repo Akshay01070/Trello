@@ -77,6 +77,15 @@ function createBoard(boardCandidate) {
     setActiveCard(null);
   }
 
+  function createGlobalLabel(newLabel) {
+    // avoid duplicates
+    const existing = (data.labels || []).find(l => l.id === newLabel.id);
+    const newLabels = existing ? data.labels : [...(data.labels || []), newLabel];
+    const newData = { ...data, labels: newLabels };
+    setData(newData);
+    saveData(newData);
+  }
+
   const filteredBoard = activeBoard ? {
     ...activeBoard,
     lists: activeBoard.lists.map(l => ({
@@ -114,6 +123,7 @@ function createBoard(boardCandidate) {
             board={filteredBoard}
             setBoard={updateBoard}
             members={data.members}
+            labels={data.labels || []}
             onOpenCard={(card) => setActiveCard(card)}
           />
         )}
@@ -123,6 +133,8 @@ function createBoard(boardCandidate) {
         <CardModal
           card={activeCard}
           members={data.members}
+          labels={data.labels || []}
+          onCreateLabel={createGlobalLabel}
           onClose={() => setActiveCard(null)}
           onSave={(updatedCard) => {
             saveCard(updatedCard);

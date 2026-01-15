@@ -6,6 +6,15 @@ const members = [
   { id: 'm3', name: 'Charlie' }
 ];
 
+const labels = [
+  { id: 'l-frontend', name: 'frontend', color: 'green' },
+  { id: 'l-backend', name: 'backend', color: 'amber' },
+  { id: 'l-urgent', name: 'urgent', color: 'red' },
+  { id: 'l-design', name: 'design', color: 'violet' },
+  { id: 'l-bug', name: 'bug', color: 'red' },
+  { id: 'l-feature', name: 'feature', color: 'blue' }
+];
+
 const sampleBoard = {
   id: 'b1',
   title: 'Default Board',
@@ -18,9 +27,9 @@ const sampleBoard = {
           id: 'c1',
           title: 'Setup project',
           description: 'Create Vite + React skeleton',
-          labels: ['frontend'],
+          labels: ['l-frontend'],
           dueDate: null,
-          checklist: [{ id: uuid(), text: 'init repo', done: true }],
+          checklists: [{ id: uuid(), title: 'Setup tasks', items: [{ id: uuid(), text: 'init repo', done: true }] }],
           members: ['m1'],
           archived: false
         },
@@ -28,9 +37,9 @@ const sampleBoard = {
           id: 'c2',
           title: 'Design DB schema',
           description: '',
-          labels: ['backend'],
+          labels: ['l-backend'],
           dueDate: null,
-          checklist: [],
+          checklists: [],
           members: ['m2'],
           archived: false
         }
@@ -49,4 +58,4 @@ const sampleBoard = {
   ]
 };
 
-export { sampleBoard, members };
+export { sampleBoard, members, labels };

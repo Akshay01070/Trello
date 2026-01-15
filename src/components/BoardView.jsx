@@ -13,7 +13,7 @@ import { v4 as uuid } from 'uuid';
  * - Rename action focuses the list title input (no prompt)
  */
 
-export default function BoardView({ board, setBoard, members, onOpenCard }) {
+export default function BoardView({ board, setBoard, members, labels = [],onOpenCard }) {
   const [openMenuId, setOpenMenuId] = useState(null);
   const [openAddCardListId, setOpenAddCardListId] = useState(null);
   // map of refs for list title inputs to focus for rename
@@ -155,7 +155,8 @@ export default function BoardView({ board, setBoard, members, onOpenCard }) {
                                     {...cardProvided.draggableProps}
                                     {...cardProvided.dragHandleProps}
                                   >
-                                    <CardItem card={card} onOpen={() => onOpenCard(card)} />
+                                    <CardItem card={card} onOpen={() => onOpenCard(card)} labels={labels} />
+
                                   </div>
                                 )}
                               </Draggable>
