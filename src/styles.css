@@ -27,3 +27,56 @@ body, html, #root { height: 100%; margin: 0; padding: 0; }
 .modal input, .modal textarea { width:100%; margin-bottom:8px; padding:6px; border:1px solid #ddd; border-radius:6px; }
 .modal-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:8px; }
 label { display:inline-flex; gap:6px; align-items:center; margin-right:8px; }
+
+
+.app-layout {
+  display: flex;
+  height: 100vh;
+}
+
+.board-selector {
+  width: 420px;
+  background: #1d2430;
+  color: white;
+  padding: 12px;
+}
+
+.board-item {
+  padding: 8px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.board-item:hover {
+  background: rgba(255,255,255,0.1);
+}
+
+.board-item.active {
+  background: #635bff;
+}
+
+.create-board {
+  margin-top: 12px;
+  display: flex;
+  gap: 6px;
+}
+
+.create-board input {
+  flex: 1;
+  padding: 6px;
+  border-radius: 4px;
+  border: none;
+}
+
+.create-board button {
+  padding: 6px 8px;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+}
+
+.main-content {
+  flex: 1;
+  padding: 12px;
+  overflow-x: auto;
+}
