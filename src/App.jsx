@@ -8,9 +8,9 @@ import { v4 as uuid } from 'uuid';
 
 
 export default function App() {
-  const [data, setData] = useState(loadData());
+  const [data, setData] = useState(() => loadData());
   const [activeBoardId, setActiveBoardId] = useState(data.boards[0]?.id);
-  const [activeCard, setActiveCard] = useState(null);
+  const [activeCard, setActiveCard] = useState(null); // card object to edit
 
   const [searchText, setSearchText] = useState("");
   const [filters, setFilters] = useState({ member: null, label: null });
@@ -114,6 +114,7 @@ function createBoard(boardCandidate) {
             board={filteredBoard}
             setBoard={updateBoard}
             members={data.members}
+            onOpenCard={(card) => setActiveCard(card)}
           />
         )}
       </div>
@@ -123,7 +124,10 @@ function createBoard(boardCandidate) {
           card={activeCard}
           members={data.members}
           onClose={() => setActiveCard(null)}
-          onSave={saveCard}
+          onSave={(updatedCard) => {
+            saveCard(updatedCard);
+            setActiveCard(null);
+          }}
           onArchive={archiveCard}
         />
       )}
