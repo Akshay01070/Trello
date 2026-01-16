@@ -2,7 +2,5 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "devCommand": "npm run dev",
-  "env": {
-    "NODE_VERSION": "18.x"
-  }
+  "nodeVersion": "20.x"
 }
