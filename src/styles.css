@@ -1,6 +1,29 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* src/styles.css - Tailwind v4 */
+@import "tailwindcss";
 
-/* optional app custom styles */
-body { background: #0b0f0f; }
+/* fallback font */
+body {
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  margin: 0;
+}
+
+/* small fallback (applies even if Tailwind not compiled) */
+:root {
+  color-scheme: dark;
+}
+
+/* minimal fallback if Tailwind is not working */
+.app-root {
+  background: #0b0f0f;
+  color: #e6eef6;
+}
+
+input, button, textarea {
+  font-family: inherit;
+}
+
+.board-background {
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: center;
+}

@@ -1,168 +1,147 @@
 // src/App.jsx
 import React, { useEffect, useState } from "react";
 import { v4 as uuid } from "uuid";
+import { Routes, Route, useNavigate, useParams } from "react-router-dom";
 import { loadData, saveData } from "./utils/storage";
 import BoardView from "./components/BoardView";
 import CardModal from "./components/CardModal";
 import Home from "./pages/Home";
 import Navbar from "./components/Navbar";
+import BoardTopBar from "./components/BoardTopBar";
+import FilterPanel from "./components/FilterPanel";
 import CreateMenu from "./components/CreateMenu";
 import CreateBoardModal from "./components/CreateBoardModal";
 
 export default function App() {
-  let initialData;
-  try {
-    initialData = loadData();
-  } catch (e) {
-    console.error('Error loading data:', e);
-    initialData = { boards: [], members: [], labels: [] };
-  }
-
-  const [data, setData] = useState(initialData);
-  const [view, setView] = useState("home");
-  const [activeBoardId, setActiveBoardId] = useState(data.boards[0]?.id || null);
+  const [data, setData] = useState(() => loadData());
   const [activeCard, setActiveCard] = useState(null);
 
-  // create-menu/modal UI
+  // create menu + create board modal toggles
   const [showCreateMenu, setShowCreateMenu] = useState(false);
   const [showCreateBoardModal, setShowCreateBoardModal] = useState(false);
 
-  useEffect(() => {
-    saveData(data);
-  }, [data]);
+  // filter UI (kept global here)
+  const [showFilterPanel, setShowFilterPanel] = useState(false);
+  const [filters, setFilters] = useState({
+    keyword: "",
+    members: [],
+    status: null,
+    due: null,
+    labels: []
+  });
 
+  useEffect(() => saveData(data), [data]);
+
+  const navigate = useNavigate();
+
+  // Create board and navigate to its URL
   function createBoardWithConfig({ title = "Untitled Board", background = null }) {
     const id = uuid();
     const newBoard = {
       id,
       title,
-      background, // string: color or image URL
+      background,
       lists: [{ id: uuid(), title: "To Do", cards: [] }]
     };
     const newData = { ...data, boards: [...(data.boards || []), newBoard] };
     setData(newData);
-    setActiveBoardId(id);
-    setView("board");
+    navigate(`/board/${id}`);
     setShowCreateBoardModal(false);
   }
 
   function updateBoard(updatedBoard) {
-    const newData = { ...data, boards: data.boards.map(b => b.id === updatedBoard.id ? updatedBoard : b) };
-    setData(newData);
-  }
-
-  function openBoard(boardId) {
-    setActiveBoardId(boardId);
-    setView("board");
-  }
-
-  function openCard(card) {
-    setActiveCard(card);
-  }
-
-  function saveCard(updatedCard) {
-    const newBoards = data.boards.map(b => {
-      if (b.id !== activeBoardId) return b;
-      return {
-        ...b,
-        lists: b.lists.map(l => ({
-          ...l,
-          cards: l.cards.map(c => c.id === updatedCard.id ? updatedCard : c)
-        }))
-      };
-    });
-    setData({ ...data, boards: newBoards });
-    setActiveCard(null);
-  }
-
-  function archiveCard(cardId) {
-    const newBoards = data.boards.map(b => {
-      if (b.id !== activeBoardId) return b;
-      return {
-        ...b,
-        lists: b.lists.map(l => ({
-          ...l,
-          cards: l.cards.map(c => c.id === cardId ? { ...c, archived: true } : c)
-        }))
-      };
-    });
-    setData({ ...data, boards: newBoards });
-    setActiveCard(null);
+    setData({ ...data, boards: data.boards.map(b => b.id === updatedBoard.id ? updatedBoard : b) });
   }
 
   function createGlobalLabel(label) {
     if (!label) return;
-    const exists = (data.labels || []).some(l => l.id === label.id);
-    if (exists) return;
-    const newData = { ...data, labels: [...(data.labels || []), label] };
-    setData(newData);
+    if ((data.labels || []).some(l => l.id === label.id)) return;
+    setData({ ...data, labels: [...(data.labels || []), label] });
   }
 
-  const activeBoard = data.boards.find(b => b.id === activeBoardId) || null;
+  function saveCard(updatedCard, boardId) {
+    const newBoards = data.boards.map(b => {
+      if (b.id !== boardId) return b;
+      return { ...b, lists: b.lists.map(l => ({ ...l, cards: l.cards.map(c => c.id === updatedCard.id ? updatedCard : c) })) };
+    });
+    setData({ ...data, boards: newBoards });
+    setActiveCard(null);
+  }
 
-  return (
-    <div className="app-root min-h-screen bg-neutral-900 text-white">
-      <Navbar
-        onSearch={() => {}}
-        onCreateClick={() => setShowCreateMenu(s => !s)}
-      />
+  function archiveCard(cardId, boardId) {
+    const newBoards = data.boards.map(b => {
+      if (b.id !== boardId) return b;
+      return { ...b, lists: b.lists.map(l => ({ ...l, cards: l.cards.map(c => c.id === cardId ? { ...c, archived: true } : c) })) };
+    });
+    setData({ ...data, boards: newBoards });
+    setActiveCard(null);
+  }
 
-      {/* Create menu (small popup) */}
-      {showCreateMenu && (
-        <CreateMenu
-          onClose={() => setShowCreateMenu(false)}
-          onSelect={(opt) => {
-            setShowCreateMenu(false);
-            if (opt === "create-board") setShowCreateBoardModal(true);
-            // other options are not implemented, keep UI only
-          }}
+  // Board page component (reads :boardId)
+  function BoardPage() {
+    const { boardId } = useParams();
+    const board = data.boards.find(b => b.id === boardId);
+    if (!board) {
+      // if board doesn't exist navigate back to home
+      useEffect(() => { navigate("/"); }, []);
+      return null;
+    }
+
+    // apply background (color or image)
+    const backgroundStyle = board.background
+      ? (board.background.startsWith("#")
+          ? { backgroundColor: board.background }
+          : { backgroundImage: `url(${board.background})`, backgroundSize: "cover", backgroundPosition: "center" })
+      : {};
+
+    return (
+      <div className="w-full">
+        <BoardTopBar
+          title={board.title}
+          onToggleViews={() => {}}
+          onOpenFilter={() => setShowFilterPanel(true)}
         />
-      )}
 
-      <main className="p-6 pt-24">
-        {view === "home" && (
-          <Home
-            data={data}
-            onOpenBoard={openBoard}
-            onCreateBoard={(title) => createBoardWithConfig({ title })}
-          />
-        )}
-
-        {view === "board" && activeBoard && (
-          // apply board background
-          <div
-            className="min-h-[70vh] rounded-md p-4"
-            style={
-              activeBoard.background
-                ? activeBoard.background.startsWith("#")
-                  ? { backgroundColor: activeBoard.background }
-                  : { backgroundImage: `url(${activeBoard.background})`, backgroundSize: "cover", backgroundPosition: "center" }
-                : {}
-            }
-          >
-            <button
-              onClick={() => setView("home")}
-              className="mb-4 px-3 py-1 rounded bg-neutral-800 text-sm"
-            >
-              ← Back
-            </button>
-
+        <div className="board-background pt-4" style={{ minHeight: "calc(100vh - 160px)", ...backgroundStyle }}>
+          <div style={{ height: "calc(100vh - 260px)", paddingBottom: 84 }} className="overflow-x-auto">
             <BoardView
-              board={activeBoard}
+              board={board}
               setBoard={(b) => updateBoard(b)}
               members={data.members}
               labels={data.labels || []}
-              onOpenCard={(card) => openCard(card)}
+              onOpenCard={(card) => setActiveCard({ ...card, _boardId: boardId })}
             />
           </div>
-        )}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="app-root min-h-screen bg-neutral-900 text-white">
+      <Navbar onSearch={() => {}} onCreateClick={() => setShowCreateMenu(s => !s)} />
+
+      {showCreateMenu && (
+        <CreateMenu onClose={() => setShowCreateMenu(false)} onSelect={(opt) => {
+          setShowCreateMenu(false);
+          if (opt === "create-board") setShowCreateBoardModal(true);
+        }} />
+      )}
+
+      <main className="pt-10">
+        <Routes>
+          <Route path="/" element={<Home data={data} onCreateBoard={(t) => createBoardWithConfig({ title: t })} />} />
+          <Route path="/board/:boardId" element={<BoardPage />} />
+          {/* (you can add more routes here later) */}
+        </Routes>
       </main>
 
       {showCreateBoardModal && (
-        <CreateBoardModal
-          onClose={() => setShowCreateBoardModal(false)}
-          onCreate={(cfg) => createBoardWithConfig(cfg)}
-        />
+        <CreateBoardModal onClose={() => setShowCreateBoardModal(false)} onCreate={(cfg) => createBoardWithConfig(cfg)} />
+      )}
+
+      {showFilterPanel && (
+        <FilterPanel labels={data.labels || []} members={data.members || []} filters={filters} onChange={(next) => setFilters({ ...filters, ...next })} onClose={() => setShowFilterPanel(false)} />
       )}
 
       {activeCard && (
@@ -172,8 +151,8 @@ export default function App() {
           labels={data.labels || []}
           onCreateLabel={createGlobalLabel}
           onClose={() => setActiveCard(null)}
-          onSave={(c) => saveCard(c)}
-          onArchive={(id) => archiveCard(id)}
+          onSave={(c) => saveCard(c, activeCard._boardId)}
+          onArchive={(id) => archiveCard(id, activeCard._boardId)}
         />
       )}
     </div>

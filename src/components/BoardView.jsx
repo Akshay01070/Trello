@@ -80,9 +80,9 @@ export default function BoardView({ board, setBoard, members, labels = [],onOpen
 
   return (
     <div className="board-view">
-      <div className="board-header mb-4">
+      {/* <div className="board-header mb-4">
         <h2 className="text-2xl font-bold">{board.title}</h2>
-      </div>
+      </div> */}
 
       <DragDropContext onDragEnd={onDragEnd}>
         <Droppable droppableId="board-droppable" direction="horizontal" type="list">
