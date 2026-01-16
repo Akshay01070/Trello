@@ -1,8 +1,6 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-/* small custom helpers */
-.app-layout { @apply flex h-screen; }
-.board-selector { @apply w-56 bg-gray-900 text-white p-4; }
-.main-content { @apply flex-1 p-4 overflow-x-auto; }
-
-/* If you previously had custom CSS, you can re-add below */
+/* optional app custom styles */
+body { background: #0b0f0f; }

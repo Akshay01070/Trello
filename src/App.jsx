@@ -1,133 +1,169 @@
+// src/App.jsx
 import React, { useEffect, useState } from "react";
+import { v4 as uuid } from "uuid";
 import { loadData, saveData } from "./utils/storage";
 import BoardView from "./components/BoardView";
 import CardModal from "./components/CardModal";
-import SearchFilter from "./components/SearchFilter";
-import BoardSelector from "./components/BoardSelector";
-import { v4 as uuid } from 'uuid';
-
+import Home from "./pages/Home";
+import Navbar from "./components/Navbar";
+import CreateMenu from "./components/CreateMenu";
+import CreateBoardModal from "./components/CreateBoardModal";
 
 export default function App() {
-  const [data, setData] = useState(() => loadData());
-  const [activeBoardId, setActiveBoardId] = useState(data.boards[0]?.id);
-  const [activeCard, setActiveCard] = useState(null); // card object to edit
+  let initialData;
+  try {
+    initialData = loadData();
+  } catch (e) {
+    console.error('Error loading data:', e);
+    initialData = { boards: [], members: [], labels: [] };
+  }
 
-  const [searchText, setSearchText] = useState("");
-  const [filters, setFilters] = useState({ member: null, label: null });
+  const [data, setData] = useState(initialData);
+  const [view, setView] = useState("home");
+  const [activeBoardId, setActiveBoardId] = useState(data.boards[0]?.id || null);
+  const [activeCard, setActiveCard] = useState(null);
 
-  const activeBoard = data.boards.find(b => b.id === activeBoardId);
+  // create-menu/modal UI
+  const [showCreateMenu, setShowCreateMenu] = useState(false);
+  const [showCreateBoardModal, setShowCreateBoardModal] = useState(false);
 
   useEffect(() => {
     saveData(data);
   }, [data]);
 
-function createBoard(boardCandidate) {
-  // ensure the board has lists array
-  const newBoard = {
-    ...boardCandidate,
-    id: boardCandidate.id || uuid(),
-    title: boardCandidate.title || 'Untitled Board',
-    lists: Array.isArray(boardCandidate.lists) && boardCandidate.lists.length
-      ? boardCandidate.lists
-      : [{ id: uuid(), title: 'To Do', cards: [] }]
-  };
-
-  const newData = {
-    ...data,
-    boards: [...(data.boards || []), newBoard]
-  };
-
-  setData(newData);
-  setActiveBoardId(newBoard.id);
-
-  // save immediately so localStorage is updated without waiting for useEffect
-  try { saveData(newData); } catch (e) { console.error('saveData failed', e); }
-  console.log('App: created new board', newBoard);
-}
+  function createBoardWithConfig({ title = "Untitled Board", background = null }) {
+    const id = uuid();
+    const newBoard = {
+      id,
+      title,
+      background, // string: color or image URL
+      lists: [{ id: uuid(), title: "To Do", cards: [] }]
+    };
+    const newData = { ...data, boards: [...(data.boards || []), newBoard] };
+    setData(newData);
+    setActiveBoardId(id);
+    setView("board");
+    setShowCreateBoardModal(false);
+  }
 
   function updateBoard(updatedBoard) {
-    setData({
-      ...data,
-      boards: data.boards.map(b =>
-        b.id === updatedBoard.id ? updatedBoard : b
-      )
-    });
+    const newData = { ...data, boards: data.boards.map(b => b.id === updatedBoard.id ? updatedBoard : b) };
+    setData(newData);
+  }
+
+  function openBoard(boardId) {
+    setActiveBoardId(boardId);
+    setView("board");
+  }
+
+  function openCard(card) {
+    setActiveCard(card);
   }
 
   function saveCard(updatedCard) {
-    updateBoard({
-      ...activeBoard,
-      lists: activeBoard.lists.map(l => ({
-        ...l,
-        cards: l.cards.map(c => c.id === updatedCard.id ? updatedCard : c)
-      }))
+    const newBoards = data.boards.map(b => {
+      if (b.id !== activeBoardId) return b;
+      return {
+        ...b,
+        lists: b.lists.map(l => ({
+          ...l,
+          cards: l.cards.map(c => c.id === updatedCard.id ? updatedCard : c)
+        }))
+      };
     });
-  }
-
-  function archiveCard(cardId) {
-    updateBoard({
-      ...activeBoard,
-      lists: activeBoard.lists.map(l => ({
-        ...l,
-        cards: l.cards.map(c =>
-          c.id === cardId ? { ...c, archived: true } : c
-        )
-      }))
-    });
+    setData({ ...data, boards: newBoards });
     setActiveCard(null);
   }
 
-  function createGlobalLabel(newLabel) {
-    // avoid duplicates
-    const existing = (data.labels || []).find(l => l.id === newLabel.id);
-    const newLabels = existing ? data.labels : [...(data.labels || []), newLabel];
-    const newData = { ...data, labels: newLabels };
-    setData(newData);
-    saveData(newData);
+  function archiveCard(cardId) {
+    const newBoards = data.boards.map(b => {
+      if (b.id !== activeBoardId) return b;
+      return {
+        ...b,
+        lists: b.lists.map(l => ({
+          ...l,
+          cards: l.cards.map(c => c.id === cardId ? { ...c, archived: true } : c)
+        }))
+      };
+    });
+    setData({ ...data, boards: newBoards });
+    setActiveCard(null);
   }
 
-  const filteredBoard = activeBoard ? {
-    ...activeBoard,
-    lists: activeBoard.lists.map(l => ({
-      ...l,
-      cards: l.cards.filter(c => {
-        if (c.archived) return false;
-        if (searchText && !c.title.toLowerCase().includes(searchText.toLowerCase())) return false;
-        if (filters.member && !c.members?.includes(filters.member)) return false;
-        if (filters.label && !c.labels?.includes(filters.label)) return false;
-        return true;
-      })
-    }))
-  } : null;
+  function createGlobalLabel(label) {
+    if (!label) return;
+    const exists = (data.labels || []).some(l => l.id === label.id);
+    if (exists) return;
+    const newData = { ...data, labels: [...(data.labels || []), label] };
+    setData(newData);
+  }
+
+  const activeBoard = data.boards.find(b => b.id === activeBoardId) || null;
 
   return (
-    <div className="app-layout">
-      <BoardSelector
-        boards={data.boards}
-        activeBoardId={activeBoardId}
-        onSelect={setActiveBoardId}
-        onCreate={createBoard}
+    <div className="app-root min-h-screen bg-neutral-900 text-white">
+      <Navbar
+        onSearch={() => {}}
+        onCreateClick={() => setShowCreateMenu(s => !s)}
       />
 
-      <div className="main-content">
-        <SearchFilter
-          searchText={searchText}
-          setSearchText={setSearchText}
-          filters={filters}
-          setFilters={setFilters}
-          members={data.members}
+      {/* Create menu (small popup) */}
+      {showCreateMenu && (
+        <CreateMenu
+          onClose={() => setShowCreateMenu(false)}
+          onSelect={(opt) => {
+            setShowCreateMenu(false);
+            if (opt === "create-board") setShowCreateBoardModal(true);
+            // other options are not implemented, keep UI only
+          }}
         />
+      )}
 
-        {filteredBoard && (
-          <BoardView
-            board={filteredBoard}
-            setBoard={updateBoard}
-            members={data.members}
-            labels={data.labels || []}
-            onOpenCard={(card) => setActiveCard(card)}
+      <main className="p-6 pt-24">
+        {view === "home" && (
+          <Home
+            data={data}
+            onOpenBoard={openBoard}
+            onCreateBoard={(title) => createBoardWithConfig({ title })}
           />
         )}
-      </div>
+
+        {view === "board" && activeBoard && (
+          // apply board background
+          <div
+            className="min-h-[70vh] rounded-md p-4"
+            style={
+              activeBoard.background
+                ? activeBoard.background.startsWith("#")
+                  ? { backgroundColor: activeBoard.background }
+                  : { backgroundImage: `url(${activeBoard.background})`, backgroundSize: "cover", backgroundPosition: "center" }
+                : {}
+            }
+          >
+            <button
+              onClick={() => setView("home")}
+              className="mb-4 px-3 py-1 rounded bg-neutral-800 text-sm"
+            >
+              ← Back
+            </button>
+
+            <BoardView
+              board={activeBoard}
+              setBoard={(b) => updateBoard(b)}
+              members={data.members}
+              labels={data.labels || []}
+              onOpenCard={(card) => openCard(card)}
+            />
+          </div>
+        )}
+      </main>
+
+      {showCreateBoardModal && (
+        <CreateBoardModal
+          onClose={() => setShowCreateBoardModal(false)}
+          onCreate={(cfg) => createBoardWithConfig(cfg)}
+        />
+      )}
 
       {activeCard && (
         <CardModal
@@ -136,11 +172,8 @@ function createBoard(boardCandidate) {
           labels={data.labels || []}
           onCreateLabel={createGlobalLabel}
           onClose={() => setActiveCard(null)}
-          onSave={(updatedCard) => {
-            saveCard(updatedCard);
-            setActiveCard(null);
-          }}
-          onArchive={archiveCard}
+          onSave={(c) => saveCard(c)}
+          onArchive={(id) => archiveCard(id)}
         />
       )}
     </div>
